@@ -1,0 +1,8 @@
+pydantic
+mcp
+fastapi
+fastmcp
+ipykernel
+python-dotenv
+asyncio
+mangum

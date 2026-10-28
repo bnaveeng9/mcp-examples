@@ -6,3 +6,9 @@ ipykernel
 python-dotenv
 asyncio
 mangum
+ipykernel
+google-auth
+google-auth-oauthlib
+google-api-python-client
+names
+python-dotenv

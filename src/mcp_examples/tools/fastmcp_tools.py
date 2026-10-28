@@ -1,29 +1,27 @@
-import asyncio
-from collections.abc import AsyncIterator
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import Response, StreamingResponse
+"""FastMCP tool registration examples for the sample server."""
+
 from fastmcp import FastMCP
-from mangum import Mangum
+
 from .gmailmessages import gmailmessagesjson
 
+
 def register(mcp: FastMCP) -> None:
+    """Register the example MCP tools on the given FastMCP instance."""
+
     @mcp.tool()
     def sudo_otp() -> str:
-        """
-        Returns a dummy OTP like string.
-        :return:  a dummy OTP like string.
-        """
+        """Return a dummy OTP string used for local demonstration purposes."""
         return "651243"
 
     @mcp.tool
     def get_otp_messages() -> list[dict[str, str]]:
-        """Return recent Gmail inbox messages."""
+        """Return recent Gmail inbox messages as a list of structured payloads."""
         return gmailmessagesjson()
 
 
 def main() -> None:
+    """Provide a direct-app startup entry point when this module is executed."""
     import uvicorn
+
     uvicorn.run("fastapi_lambdadocker:app", host="localhost", port=8000)
 
-
-#handler = Mangum(app)

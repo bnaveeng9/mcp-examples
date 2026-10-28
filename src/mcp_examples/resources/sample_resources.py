@@ -1,28 +1,32 @@
+"""Example resource registrations for the FastMCP server."""
+
 import json
+
 from fastmcp import FastMCP
 
 
 def register(mcp: FastMCP) -> None:
-    # Basic dynamic resource returning a string
+    """Register a few simple dynamic resources that return greeting and config data."""
+
     @mcp.resource("resource://greeting")
     def get_greeting() -> str:
-        """Provides a simple greeting message."""
+        """Return a static greeting string exposed as an MCP resource."""
         return "Hello from FastMCP Resources!"
 
-    # Resource returning JSON data
     @mcp.resource("data://config")
     def get_config() -> str:
-        """Provides application configuration as JSON."""
-        return json.dumps({
-            "theme": "dark",
-            "version": "1.2.0",
-            "features": ["tools", "resources"],
-        })
+        """Return application configuration as a JSON-formatted string."""
+        return json.dumps(
+            {
+                "theme": "dark",
+                "version": "1.2.0",
+                "features": ["tools", "resources"],
+            }
+        )
 
-    # Resource returning JSON data
     @mcp.resource("data://configdict")
     def get_config_dict() -> dict:
-        """Provides application configuration as JSON."""
+        """Return application configuration as a dictionary payload."""
         return {
             "theme": "dark",
             "version": "1.2.0",

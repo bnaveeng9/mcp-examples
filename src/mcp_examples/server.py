@@ -1,3 +1,5 @@
+import argparse
+
 from fastmcp import FastMCP
 from mangum import Mangum
 from fastapi import FastAPI
@@ -28,7 +30,20 @@ app = create_app_server()
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Run the MCP examples server.")
+    parser.add_argument(
+        "--mcp-http",
+        action="store_true",
+        help="Run the standalone Streamable HTTP MCP server instead of FastAPI.",
+    )
+    args = parser.parse_args()
+
+    if args.mcp_http:
+        mcp.run(transport="streamable-http", host="localhost", port=8000)
+        return
+
     import uvicorn
+
     uvicorn.run(app, host="localhost", port=8000)
 
 

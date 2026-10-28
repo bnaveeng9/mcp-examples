@@ -1,3 +1,5 @@
+"""Convenience module entry point for running the MCP example server."""
+
 from .server import main
 
 

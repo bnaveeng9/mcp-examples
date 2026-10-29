@@ -12,3 +12,4 @@ google-auth-oauthlib
 google-api-python-client
 names
 python-dotenv
+PyJWT[crypto]>=2.10.1

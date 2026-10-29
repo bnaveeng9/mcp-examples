@@ -30,6 +30,12 @@ Install project dependencies with `uv`:
 uv sync
 ```
 
+Configure AWS Cognito before starting the server. Copy `.env.example` to `.env`
+and replace the Cognito placeholders with your app-client settings. See
+[OAUTH.md](./OAUTH.md) for the app-client setup, required environment variables,
+login flow, and protected routes. Cognito protects the HTTP and MCP surfaces;
+the Gmail example still requires its separate Google OAuth credentials.
+
 You can also inspect the command-line options with:
 
 ```powershell
@@ -40,51 +46,71 @@ uv run python -m mcp_examples.server --help
 
 ### 1) Default FastAPI mode
 
-This is the default mode for both the module and package commands. It starts the FastAPI app, mounts the MCP server at `/mcp/`, and exposes a small set of example endpoints.
+This is the default mode for both the module and package commands. It starts the FastAPI app, mounts the MCP server at `/mcp/`, and protects the application routes and MCP capabilities with Cognito.
 
 ```powershell
-uv run python -m mcp_examples.server
+uv run --env-file .env python -m mcp_examples.server
 ```
 
 The installed package command starts the same application:
 
 ```powershell
-uv run mcp-examples
+uv run --env-file .env mcp-examples
 ```
 
 Expected endpoints in this mode:
 
-- `http://localhost:8000/` — FastAPI root endpoint
-- `http://localhost:8000/health` — health check endpoint
-- `http://localhost:8000/mcp/` — MCP endpoint mounted by the FastAPI app; access it using MCP protocol requests rather than a simple browser GET
+- `http://localhost:8000/auth/login` — public Cognito login initiation route
+- `http://localhost:8000/auth/callback` — OAuth callback registered in Cognito
+- `http://localhost:8000/health` — public health check
+- `http://localhost:8000/` — protected FastAPI root endpoint
+- `http://localhost:8000/mcp/` — protected MCP endpoint; use MCP protocol requests and send the login session cookie or a Cognito bearer token
 
-### 2) Standalone Streamable HTTP MCP mode
+### 2) MCP-focused Streamable HTTP mode
 
-Use the standalone mode when you want to run the MCP server directly without the FastAPI wrapper. This is an alternative to the default file-based or app-based startup flow and should be used instead of the FastAPI mode when you specifically want raw MCP HTTP transport.
+Use this mode when you want the authenticated MCP endpoint without the sample HTTP endpoints. The MCP server remains mounted in an authenticated FastAPI wrapper so the direct server listener cannot bypass Cognito protection.
 
 ```powershell
-uv run python -m mcp_examples.server --mcp-http
+uv run --env-file .env python -m mcp_examples.server --mcp-http
 ```
 
 Expected endpoint in this mode:
 
-- `http://localhost:8000/mcp` — standalone Streamable HTTP MCP endpoint; use MCP protocol requests rather than a plain browser GET
+- `http://localhost:8000/mcp/` — authenticated Streamable HTTP MCP endpoint; use MCP protocol requests and send the login session cookie or a Cognito bearer token
+
+## Run with Docker Compose
+
+Copy `.env.example` to `.env` and set your Cognito region, user-pool ID,
+app-client ID, and Hosted UI domain. For the existing Compose port mapping, set
+`COGNITO_REDIRECT_URI` to `http://localhost:9001/auth/callback` and add that
+exact URI to the Cognito app client's allowed callback URLs. Compose passes
+these settings to the container at runtime; they are not built into the image.
+
+```powershell
+docker compose up --build
+```
+
+Open `http://localhost:9001/auth/login` to sign in. The container's authenticated
+MCP endpoint is available at `http://localhost:9001/mcp/`. Use an HTTPS callback
+URI registered with Cognito for deployed environments.
 
 ## Example tool and prompt behaviors
 
 The package includes a few small examples to show how to expose MCP capabilities:
 
 - arithmetic helpers (`getSum`, `getSumAsync`)
-- Gmail OTP helper examples
+- Gmail OTP helper examples (require both Cognito and Google Gmail authorization)
 - sample prompt functions for topic explanations and code-generation requests
-- sample resources that return greeting and config payloads
+- sample resources that return greeting and config payloads, plus
+  `data://cognito/status`, which reports whether required settings are present
+  and names any missing settings without returning their values
 
 These examples are intentionally compact and designed to be easy to expand as a learning project or starting point for a larger MCP server.
 
 ## Detailed implementation notes
 
 - The default FastAPI server is the canonical development flow because it exposes both app-specific HTTP endpoints and the MCP endpoint in one place.
-- The `--mcp-http` flag runs the MCP server directly using the Streamable HTTP transport on port 8000.
+- The `--mcp-http` flag runs the authenticated MCP endpoint without the sample HTTP routes on port 8000.
 - The app entry point is `mcp_examples.server`, which is the single source of truth for startup behavior.
 - All public helper modules are documented with docstrings so future contributors can understand the purpose of each tool and registration function without reading the entire runtime flow.
 
@@ -92,9 +118,9 @@ These examples are intentionally compact and designed to be easy to expand as a 
 
 Before finalizing changes to the project, confirm that:
 
-- `uv run python -m mcp_examples.server` starts successfully
-- `uv run mcp-examples` starts the same app without errors
-- `uv run python -m mcp_examples.server --mcp-http` starts the standalone MCP HTTP server correctly
+- `uv run --env-file .env python -m mcp_examples.server` starts successfully
+- `uv run --env-file .env mcp-examples` starts the same app without errors
+- `uv run --env-file .env python -m mcp_examples.server --mcp-http` starts the authenticated MCP HTTP mode correctly
 - the endpoints listed above are reachable and match the runtime behavior
 - any new or updated docstrings reflect the current code rather than planned future behavior
 

@@ -1,8 +1,24 @@
 """Example resource registrations for the FastMCP server."""
 
 import json
+import os
 
 from fastmcp import FastMCP
+
+from mcp_examples.oauth import COGNITO_REQUIRED_ENV_VARS
+
+
+def get_cognito_status() -> dict[str, object]:
+    """Report Cognito setting presence without returning configured values."""
+    missing = [
+        name
+        for name in COGNITO_REQUIRED_ENV_VARS
+        if not os.environ.get(name, "").strip()
+    ]
+    return {
+        "required_settings_present": not missing,
+        "missing": missing,
+    }
 
 
 def register(mcp: FastMCP) -> None:
@@ -32,3 +48,5 @@ def register(mcp: FastMCP) -> None:
             "version": "1.2.0",
             "features": ["tools", "resources"],
         }
+
+    mcp.resource("data://cognito/status")(get_cognito_status)

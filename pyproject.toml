@@ -20,7 +20,13 @@ dependencies = [
     "mcp>=2.3.0",
     "names>=0.3.0",
     "pydantic>=2.14.1",
+    "pyjwt[crypto]>=2.10.1",
     "python-dotenv>=1.2.4",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
 ]
 
 [project.scripts]

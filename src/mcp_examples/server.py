@@ -59,47 +59,47 @@ def create_app_server(
             """Expose the public liveness probe in MCP-only mode."""
             return {"status": "ok"}
 
-    @app.middleware("http")
-    async def require_cognito_session(request: Request, call_next):
-        """Guard app and MCP routes while allowing OAuth bootstrap and health."""
-        if request.url.path == "/health":
-            return await call_next(request)
-        if request.url.path in {"/auth/login", "/auth/callback"}:
-            response = await call_next(request)
-            response.headers["Cache-Control"] = "no-store"
-            response.headers["Referrer-Policy"] = "no-referrer"
-            return response
-        try:
-            claims = await auth.authenticate(request.cookies.get(SESSION_COOKIE))
-            authorization = request.headers.get("authorization", "")
-            scheme, _, bearer_token = authorization.partition(" ")
-            if claims is None and scheme.lower() == "bearer" and bearer_token:
-                claims = await auth.authenticate_bearer(bearer_token.strip())
-        except CognitoConfigurationError as exc:
-            return JSONResponse(
-                status_code=503,
-                content={"detail": str(exc)},
-                headers={"Cache-Control": "no-store"},
-            )
-        except CognitoUnavailableError:
-            logger.exception("Cognito authentication service is unavailable.")
-            return JSONResponse(
-                status_code=503,
-                content={
-                    "detail": "Cognito authentication is temporarily unavailable."
-                },
-                headers={"Cache-Control": "no-store"},
-            )
-        if claims is None:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Cognito authentication is required."},
-                headers={"Cache-Control": "no-store"},
-            )
-        request.state.cognito_claims = claims
-        response = await call_next(request)
-        response.headers["Cache-Control"] = "no-store"
-        return response
+    # @app.middleware("http")
+    # async def require_cognito_session(request: Request, call_next):
+    #     """Guard app and MCP routes while allowing OAuth bootstrap and health."""
+    #     if request.url.path == "/health":
+    #         return await call_next(request)
+    #     if request.url.path in {"/auth/login", "/auth/callback"}:
+    #         response = await call_next(request)
+    #         response.headers["Cache-Control"] = "no-store"
+    #         response.headers["Referrer-Policy"] = "no-referrer"
+    #         return response
+    #     try:
+    #         claims = await auth.authenticate(request.cookies.get(SESSION_COOKIE))
+    #         authorization = request.headers.get("authorization", "")
+    #         scheme, _, bearer_token = authorization.partition(" ")
+    #         if claims is None and scheme.lower() == "bearer" and bearer_token:
+    #             claims = await auth.authenticate_bearer(bearer_token.strip())
+    #     except CognitoConfigurationError as exc:
+    #         return JSONResponse(
+    #             status_code=503,
+    #             content={"detail": str(exc)},
+    #             headers={"Cache-Control": "no-store"},
+    #         )
+    #     except CognitoUnavailableError:
+    #         logger.exception("Cognito authentication service is unavailable.")
+    #         return JSONResponse(
+    #             status_code=503,
+    #             content={
+    #                 "detail": "Cognito authentication is temporarily unavailable."
+    #             },
+    #             headers={"Cache-Control": "no-store"},
+    #         )
+    #     if claims is None:
+    #         return JSONResponse(
+    #             status_code=401,
+    #             content={"detail": "Cognito authentication is required."},
+    #             headers={"Cache-Control": "no-store"},
+    #         )
+    #     request.state.cognito_claims = claims
+    #     response = await call_next(request)
+    #     response.headers["Cache-Control"] = "no-store"
+    #     return response
 
     @app.get("/auth/login", include_in_schema=False)
     async def start_cognito_login() -> RedirectResponse:

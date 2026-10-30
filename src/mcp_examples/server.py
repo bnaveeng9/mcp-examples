@@ -70,9 +70,9 @@ def create_app_server(
     include_http_examples: bool = True,
 ) -> FastAPI:
     """Create the authenticated FastAPI application and mount its MCP endpoint."""
-    auth = auth_manager or CognitoSessionManager.from_env()
+    #auth = auth_manager or CognitoSessionManager.from_env()
     app = FastAPI(title="mcp-lnbandi-sample-server", lifespan=mcp_http_app.lifespan)
-    app.state.cognito_auth = auth
+    #app.state.cognito_auth = auth
     if include_http_examples:
         register_fastapi_endpoints(app)
     else:

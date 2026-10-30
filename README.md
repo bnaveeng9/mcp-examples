@@ -107,6 +107,37 @@ The package includes a few small examples to show how to expose MCP capabilities
 
 These examples are intentionally compact and designed to be easy to expand as a learning project or starting point for a larger MCP server.
 
+## MCP progress and client communication
+
+`getSumAsync` continues to return its 11 result updates. It also reports explicit
+MCP progress from 1 through 11, with a total and a short status message. A
+client must send a progress token in the tool-call `_meta.progressToken` field
+and register a progress handler to receive those notifications; progress is
+separate from the tool's returned data.
+
+The server's MCP middleware observes inbound request and notification method
+names, including cancellation notifications, but deliberately does not log
+message payloads or arguments. FastMCP handles MCP cancellation and propagates
+cancellation to the running tool as `asyncio.CancelledError`; the example
+doesn't suppress it. With stateless Streamable HTTP, a closed request does not
+provide a reliable generic client connect/disconnect event or persistent
+presence signal.
+
+`confirmWithClient` demonstrates the standard multi-round-trip input flow. The
+server returns a structured input request, the client displays it and sends
+the user's response in a follow-up protocol request, and the tool then returns
+the result. This uses FastMCP's current `InputRequiredResult` flow rather than
+deprecated direct server-initiated requests. It requires a client that
+supports form elicitation and has an elicitation handler configured;
+otherwise the tool reports an explicit unsupported-capability error. This
+example does not add a separate WebSocket or event channel.
+
+The deployment workflow configures its Lambda Function URL for
+`RESPONSE_STREAM`, but that setting alone does not verify end-to-end delivery
+of incremental MCP progress through the application's Mangum adapter. Confirm
+progress behavior against the deployed URL before depending on it in
+production.
+
 ## Detailed implementation notes
 
 - The default FastAPI server is the canonical development flow because it exposes both app-specific HTTP endpoints and the MCP endpoint in one place.

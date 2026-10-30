@@ -177,7 +177,7 @@ jobs:
             --region "$AWS_REGION"
           aws lambda update-function-configuration \
             --function-name "$LAMBDA_FUNCTION_NAME" \
-            --image-config '{"Command":["fastapi_lambdadocker:app","--host","0.0.0.0","--port","8080"]}' \
+            --image-config '{"Command":["mcp_examples.server:app","--host","0.0.0.0","--port","8080"]}' \
             --region "$AWS_REGION"
           aws lambda wait function-updated-v2 \
             --function-name "$LAMBDA_FUNCTION_NAME" \

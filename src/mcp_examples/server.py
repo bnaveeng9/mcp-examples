@@ -7,11 +7,13 @@ HTTP mode that uses the same authentication wrapper.
 
 import argparse
 import logging
+from typing import Any
 
 import jwt
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastmcp import FastMCP
+from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from mangum import Mangum
 
 from .oauth import (
@@ -32,11 +34,31 @@ from .tools.sample_tool import Mysubscription as subscriptions
 logger = logging.getLogger(__name__)
 
 
+class MCPActivityMiddleware(Middleware):
+    """Observe inbound MCP message types without recording their payloads."""
+
+    async def on_message(
+        self,
+        context: MiddlewareContext[Any],
+        call_next: CallNext[Any, Any],
+    ) -> Any:
+        if context.source == "client":
+            logger.info(
+                "MCP client %s method=%r",
+                context.type,
+                context.method,
+            )
+        return await call_next(context)
+
+
 def create_server() -> FastMCP:
     """Create the FastMCP server and register the example tools and resources."""
     mcp = FastMCP("mcp-lnbandi-sample-server")
-    mcp.add_tool(subscriptions.getSumAsync)
-    mcp.add_tool(subscriptions.getSum)
+    mcp.add_middleware(MCPActivityMiddleware())
+    subscription = subscriptions()
+    mcp.add_tool(subscription.getSumAsync)
+    mcp.add_tool(subscription.getSum)
+    mcp.add_tool(subscription.confirmWithClient)
     register_resources(mcp)
     register_prompts(mcp)
     register_tools(mcp)
@@ -202,14 +224,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    auth = app.state.cognito_auth
-    auth.require_config()
+   # auth = app.state.cognito_auth
+    #auth.require_config()
     import uvicorn
 
-    selected_app = (
-        create_app_server(auth, include_http_examples=False) if args.mcp_http else app
-    )
-    uvicorn.run(selected_app, host="localhost", port=8000, access_log=False)
+    # selected_app = (
+    #     create_app_server(auth, include_http_examples=False) if args.mcp_http else app
+    # )
+    #uvicorn.run(selected_app, host="localhost", port=8000, access_log=False)
+    uvicorn.run(app, host="localhost", port=8000, access_log=False)
 
 
 if __name__ == "__main__":
